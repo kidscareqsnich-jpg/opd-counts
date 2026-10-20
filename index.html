@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#cfe3ff">
+<title>ส่งยอด OPD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Prompt:wght@400;500;600&family=Sarabun:wght@400;600&display=swap" rel="stylesheet">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root {
+    --sky:#e8f2ff; --sky2:#cfe3ff; --blue:#6ea8f0; --blue-d:#3f7fd6;
+    --blush:#ffeef4; --pink:#ffc7da; --pink-d:#e8799f;
+    --ink:#3b4660; --muted:#8a94ad; --line:#e6ebf5; --card:#ffffff;
+    --ok:#3dbb8a; --ok-bg:#e3f7ee; --bad:#e2637d; --bad-bg:#ffe8ed; --warn:#c27a22; --warn-bg:#fff1df;
+    --r:20px; --shadow:0 6px 20px rgba(110,140,200,.14);
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; }
+  body { font:16px/1.5 "Prompt", system-ui, sans-serif; color:var(--ink);
+    background:linear-gradient(180deg, var(--sky) 0%, #f6f9ff 40%, var(--blush) 100%) fixed; min-height:100vh; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  header { position:sticky; top:0; z-index:5; padding:14px 16px 12px;
+    background:linear-gradient(120deg, rgba(207,227,255,.92), rgba(255,215,229,.92));
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid rgba(255,255,255,.7); }
+  .top { max-width:560px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .hello { font-size:13px; color:var(--muted); line-height:1.2; }
+  .hello b { display:block; font-family:"Mali", sans-serif; font-size:19px; color:var(--ink); }
+  main { max-width:560px; margin:0 auto; padding:16px 16px 110px; }
+  h2 { font-family:"Mali", sans-serif; font-size:22px; margin:6px 0 10px; }
+  h3 { font-family:"Mali", sans-serif; font-size:16px; margin:20px 0 8px; }
+  .muted { color:var(--muted); } .sm { font-size:13px; }
+  .card { background:var(--card); border-radius:var(--r); padding:16px; box-shadow:var(--shadow); margin-bottom:12px; }
+  .back { border:none; background:rgba(255,255,255,.75); border-radius:999px; padding:8px 14px; font-size:14px; margin-bottom:12px; }
+  .btn { width:100%; border:none; border-radius:16px; padding:15px; font-size:16px; font-weight:600; cursor:pointer; }
+  .btn:disabled { opacity:.55; }
+  .btn-main { background:linear-gradient(120deg, var(--blue) 0%, #a59cf0 60%, var(--pink-d) 100%); color:#fff; box-shadow:0 8px 20px rgba(130,130,230,.3); }
+  .btn-soft { background:var(--sky); color:var(--blue-d); }
+  .btn-line { background:#fff; color:var(--bad); border:1.5px solid var(--bad-bg); }
+  .stack { display:grid; gap:10px; margin-top:16px; }
+  .field { width:100%; border:1.5px solid var(--line); background:#fff; border-radius:14px; padding:11px 13px; outline:none; }
+  .field:focus { border-color:var(--blue); }
+  label.lb { display:block; font-size:13px; color:var(--muted); margin:10px 0 4px; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  #toast { position:fixed; left:16px; right:16px; top:calc(12px + env(safe-area-inset-top)); z-index:30; margin:0 auto; max-width:520px;
+    background:var(--ink); color:#fff; padding:13px 16px; border-radius:16px; text-align:center; font-size:14px;
+    box-shadow:0 10px 24px rgba(40,50,80,.25); opacity:0; transform:translateY(-16px); transition:.2s; pointer-events:none; }
+  #toast.show { opacity:1; transform:none; } #toast.bad { background:var(--bad); }
+  .loading { text-align:center; padding:60px 0; color:var(--muted); }
+  .loading .blob { width:54px; height:54px; margin:0 auto 12px; border-radius:50%; background:linear-gradient(135deg, var(--sky2), var(--pink)); animation:pulse 1.2s infinite ease-in-out; }
+  @keyframes pulse { 50% { transform:scale(.8); opacity:.6; } }
+
+  /* วันที่ */
+  .datebar { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .datebar button { border:none; background:#fff; width:42px; height:42px; border-radius:14px; box-shadow:var(--shadow); font-size:18px; color:var(--blue-d); flex:none; }
+  .datebar label { flex:1; position:relative; background:#fff; border-radius:14px; box-shadow:var(--shadow); padding:9px 12px; text-align:center; font-weight:500; }
+  .datebar input { position:absolute; inset:0; opacity:0; width:100%; }
+
+  /* แหล่งข้อมูล 4 จุด */
+  .src { width:100%; border:none; background:#fff; border-radius:18px; padding:14px; display:flex; align-items:center; gap:12px; text-align:left; box-shadow:var(--shadow); margin-bottom:10px; }
+  .src .ic { width:46px; height:46px; border-radius:15px; display:grid; place-items:center; font-size:23px; flex:none; }
+  .src b { display:block; font-size:16px; }
+  .src .st { font-size:12px; color:var(--muted); }
+  .src .pill { margin-left:auto; flex:none; font-size:12px; border-radius:999px; padding:3px 10px; font-weight:500; }
+  .pill.ok { background:var(--ok-bg); color:var(--ok); } .pill.no { background:var(--warn-bg); color:var(--warn); }
+
+  /* บัตรรอบบ่าย */
+  .cap { background:linear-gradient(135deg, #8ebcf7 0%, #b9a8f2 55%, #f7a8c6 100%); color:#fff; border-radius:24px; padding:18px; box-shadow:0 12px 28px rgba(140,140,230,.3); margin-bottom:14px; }
+  .cap .big { font-family:"Mali", sans-serif; font-size:40px; line-height:1; }
+  .cap .eq { font-size:13px; opacity:.95; margin-top:8px; line-height:1.7; }
+  .cap .eq span { background:rgba(255,255,255,.22); border-radius:8px; padding:1px 7px; white-space:nowrap; }
+  .cap.neg { background:linear-gradient(135deg, #f3a0b4, #e2637d); }
+
+  /* รายชื่อแพทย์ */
+  .seg { display:grid; grid-template-columns:1fr 1fr; background:#fff; border-radius:14px; padding:4px; box-shadow:var(--shadow); margin-bottom:12px; }
+  .seg button { border:none; background:none; border-radius:11px; padding:9px; font-weight:500; color:var(--muted); }
+  .seg button.on { background:var(--blue); color:#fff; }
+  .doc { width:100%; border:none; background:#fff; border-radius:16px; padding:12px 14px; display:flex; gap:10px; align-items:center; text-align:left; box-shadow:0 3px 12px rgba(110,140,200,.10); margin-bottom:8px; }
+  .doc .nm { font-weight:500; }
+  .doc .meta { font-size:12px; color:var(--muted); }
+  .doc .tot { margin-left:auto; text-align:right; flex:none; }
+  .doc .tot b { display:block; font-family:"Mali", sans-serif; font-size:20px; color:var(--blue-d); line-height:1.1; }
+  .lv { display:inline-block; font-size:11px; border-radius:999px; padding:1px 8px; margin-right:4px; background:var(--sky); color:var(--blue-d); }
+  .lv.Fellow { background:#efeaff; color:#7a5bd6; } .lv.Resident { background:var(--blush); color:var(--pink-d); }
+
+  /* ฟอร์มตัวเลข */
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:6px 12px; font-size:14px; }
+  .chip.on { border-color:var(--pink-d); background:var(--blush); color:var(--pink-d); }
+  .ngrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .nf { background:#fff; border:1.5px solid var(--line); border-radius:14px; padding:6px 8px 6px 12px; display:flex; align-items:center; gap:6px; }
+  .nf.has { border-color:var(--blue); background:#f5f9ff; }
+  .nf span { flex:1; font-size:13px; line-height:1.25; }
+  .nf input { width:58px; border:none; background:transparent; text-align:right; font-size:20px; font-family:"Mali", sans-serif; outline:none; color:var(--blue-d); }
+  .nf.wide { grid-column:1 / -1; }
+  .nf input::-webkit-outer-spin-button, .nf input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .nf input[type=number] { -moz-appearance:textfield; }
+  .slips { display:grid; gap:12px; }
+  .slip { font-family:"Sarabun", sans-serif; color:#111; background:#fff; border:1px solid #999; border-radius:6px; padding:12px 14px; }
+  .slip .ln { display:flex; gap:10px; font-size:13px; margin:4px 0; }
+  .slip .ln span { flex:1; border-bottom:1px dotted #555; min-height:18px; }
+  .slip table { width:100%; border-collapse:collapse; margin-top:6px; font-size:13px; }
+  .slip td { border:1px solid #333; padding:3px 6px; height:44px; }
+  .slip td.k { width:28%; font-weight:600; }
+  .slip td.t { width:22%; }
+  .slip .lv3 { font-size:12px; }
+  .hint { font-size:11px; color:var(--muted); display:block; }
+  .grp { font-size:13px; font-weight:600; color:var(--pink-d); margin:16px 2px 6px; }
+  .total { display:flex; justify-content:space-between; align-items:center; background:var(--ok-bg); color:var(--ok); border-radius:14px; padding:10px 14px; margin-top:10px; font-weight:600; }
+  .total b { font-family:"Mali", sans-serif; font-size:24px; }
+  .savebar { position:fixed; left:16px; right:16px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:15; max-width:520px; margin:0 auto; }
+  .sync { font-size:12px; color:var(--muted); background:rgba(255,255,255,.7); border-radius:12px; padding:8px 12px; margin-top:12px; line-height:1.6; }
+
+  /* ใบสรุปประจำวัน */
+  .rep-wrap { overflow-x:auto; background:#fff; border-radius:16px; box-shadow:var(--shadow); padding:10px; }
+  .rep { font-family:"Sarabun", sans-serif; color:#111; min-width:760px; }
+  .rep h1 { font-size:16px; text-align:center; margin:4px 0; background:#bfe0f2; padding:6px; border:1px solid #333; }
+  .rep table { width:100%; border-collapse:collapse; font-size:11px; }
+  .rep th, .rep td { border:1px solid #555; padding:2px 4px; text-align:center; height:20px; }
+  .rep th { background:#fbd78a; font-weight:600; }
+  .rep td.l { text-align:left; }
+  .rep .bar td { background:#bfe0f2; font-weight:600; }
+  .rep .sum td { background:#7ee08f; font-weight:600; }
+  .rep td.tot { background:#7ee08f; font-weight:600; }
+  .rep .info td { background:#fff; }
+  .rep .gap { height:10px; border:none; }
+  .rep .sig { text-align:right; margin-top:10px; font-size:12px; }
+  @media print {
+    @page { size:A4 portrait; margin:8mm; }
+    body { background:#fff; }
+    header, .noprint, #toast, .savebar { display:none !important; }
+    main { max-width:none; padding:0; }
+    .rep-wrap { box-shadow:none; padding:0; overflow:visible; }
+    .rep { min-width:0; }
+    .rep table { font-size:9.5px; }
+    .slips { gap:0; }
+    .slip { border-radius:0; height:138mm; page-break-inside:avoid; border:1px dashed #999; }
+  }
+</style>
+</head>
+<body>
+<header class="noprint"><div class="top">
+  <div class="hello" id="hello"><span>ส่งยอด · อายุรกรรมทั่วไป</span><b>สวัสดีค่ะ 🌷</b></div>
+</div></header>
+<main id="app"><div class="loading"><div class="blob"></div>กำลังเปิดระบบ...</div></main>
+<div id="toast"></div>
+
+<script>
+const CONFIG = {
+  // LIFF ใหม่ของระบบส่งยอด (แยกจากระบบพัสดุ)
+  LIFF_ID: '2012126347-NNM5c5h5',
+  // ใส่ URL เว็บแอปของ Apps Script "ระบบส่งยอด OPD" (ลงท้ายด้วย /exec)
+  API_URL: 'https://script.google.com/macros/s/AKfycbwfQHONQJ6oXmt7ZFxdX2Qs1UPr-Q7UG9L6X8EvDtvHgWTdUlLUzWKn54dA9g1VVRTT/exec'
+};
+const S = { idToken: '', me: null, f: null, date: '', day: null, round: 'เช้า' };
+const $app = document.getElementById('app');
+
+// ---------- ตัวช่วย ----------
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v === false || v == null) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'html') el.innerHTML = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  kids.flat(Infinity).forEach(c => { if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(String(c))); });
+  return el;
+}
+function render(...nodes) { $app.replaceChildren(...nodes.flat(Infinity).filter(Boolean)); window.scrollTo(0, 0); }
+function loading(msg) { render(h('div', { class: 'loading' }, h('div', { class: 'blob' }), msg || 'กำลังโหลด...')); }
+function toast(msg, bad, ms) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show' + (bad ? ' bad' : '');
+  clearTimeout(toast.t); toast.t = setTimeout(() => { t.className = ''; }, ms || 2600);
+}
+function back(fn, label) { return h('button', { class: 'back', onclick: fn || showHome }, '‹ ' + (label || 'กลับ')); }
+function act(label, cls, fn) {
+  const b = h('button', { class: 'btn ' + (cls || 'btn-main') }, label);
+  b.addEventListener('click', async () => {
+    b.disabled = true;
+    try { await fn(); } catch (e) { toast(e.message, true, 4000); } finally { b.disabled = false; }
+  });
+  return b;
+}
+function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function parseYmd(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function thDate(s, long) { return parseYmd(s).toLocaleDateString('th-TH', long ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' } : { weekday: 'short', day: 'numeric', month: 'short', year: '2-digit' }); }
+function num(v) { return v == null || v === '' ? 0 : Number(v) || 0; }
+const blank = v => v == null || v === '';
+
+async function api(action, data) {
+  const res = await fetch(CONFIG.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action, idToken: S.idToken }, data || {})) });
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error);
+  return j.data;
+}
+
+// ---------- เริ่มต้น ----------
+async function main() {
+  try {
+    if (/PASTE_/.test(CONFIG.API_URL + CONFIG.LIFF_ID)) throw new Error('ยังไม่ได้ใส่ LIFF_ID หรือ API_URL ในไฟล์ index.html');
+    await liff.init({ liffId: CONFIG.LIFF_ID });
+    if (!liff.isLoggedIn()) { liff.login({ redirectUri: location.href }); return; }
+    S.idToken = liff.getIDToken();
+    const q = new URLSearchParams(location.search);
+    S.date = /^\d{4}-\d{2}-\d{2}$/.test(q.get('date') || '') ? q.get('date') : ymd(new Date());
+    const d = await api('init');
+    if (!d.me) return showRegister(d);
+    await start(d, q);
+  } catch (e) {
+    render(h('div', { class: 'card', style: 'text-align:center' },
+      h('div', { style: 'font-size:42px' }, '😿'), h('h2', {}, 'เปิดระบบไม่สำเร็จ'),
+      h('p', { class: 'muted' }, e.message), h('p', { class: 'sm muted' }, 'ลองปิดหน้านี้แล้วเปิดใหม่จากเมนูใน LINE')));
+  }
+}
+async function start(d, q) {
+  q = q || new URLSearchParams(location.search);
+  {
+    S.me = d.me; S.f = d.fields; S.cfg = d;
+    document.getElementById('hello').replaceChildren(h('span', {}, 'ส่งยอด · อายุรกรรมทั่วไป'), h('b', {}, 'สวัสดี ' + (S.me.nick || S.me.name.split(' ')[0]) + ' 🌷'));
+    await loadDay();
+    q.get('view') === 'print' ? showReport() : q.get('view') === 'slip' ? showSlip() : showHome();
+  }
+}
+// ---------- ลงทะเบียนครั้งแรก (รหัส + เลือกชื่อตัวเอง) ----------
+function showRegister(d) {
+  const code = h('input', { class: 'field', type: 'tel', inputmode: 'numeric', placeholder: 'รหัสลงทะเบียน (ถาม Incharge / หัวหน้า)', maxlength: '12' });
+  const step2 = h('div');
+  const go = act('ถัดไป', 'btn-main', async () => {
+    const r = await api('unclaimed', { code: code.value });
+    if (!r.list.length) throw new Error('ยังไม่มีชื่อว่างในระบบ แจ้งแอดมินให้เพิ่มชื่อในแท็บ บุคลากร');
+    code.disabled = true; go.remove();
+    const sel = h('select', { class: 'field' }, h('option', { value: '' }, '— เลือกชื่อของคุณ —'), r.list.map(x => h('option', { value: x.row }, x.name)));
+    step2.replaceChildren(h('label', { class: 'lb' }, 'ชื่อของคุณ'), sel,
+      h('div', { class: 'stack' }, act('ลงทะเบียน', 'btn-main', async () => {
+        if (!sel.value) throw new Error('กรุณาเลือกชื่อ');
+        const res = await api('register', { code: code.value, row: sel.value });
+        toast('ลงทะเบียนเรียบร้อย 🎉');
+        await start(res);
+      })));
+  });
+  render(h('div', { class: 'card', style: 'text-align:center' },
+    h('div', { style: 'font-size:46px' }, '📋'), h('h2', {}, 'ยินดีต้อนรับสู่ระบบส่งยอด'),
+    h('p', { class: 'muted sm' }, 'ลงทะเบียนครั้งเดียว ครั้งต่อไประบบจำคุณได้เลย'),
+    h('p', { class: 'sm' }, 'บัญชี LINE: ' + (d.lineName || '-')),
+    h('div', { style: 'text-align:left' }, code, h('div', { class: 'stack' }, go), step2)));
+}
+async function loadDay() { S.day = await api('day', { date: S.date }); }
+function applyDay(d) {
+  S.day = d;
+  if (d.sync) {
+    const bad = /❌|ไม่พบ|ไม่ตรง/.test(d.sync.opd + d.sync.proc);
+    toast(bad ? 'บันทึกแล้ว แต่เติมชีทรายเดือนไม่ครบ ดูรายละเอียดที่หน้าแรก' : 'บันทึกแล้ว ✓', bad, bad ? 4500 : 2200);
+  }
+}
+
+// ---------- คำนวณ ----------
+const GEN = ['spec', 'med', 'fu', 'refer', 'long', 'tele'];
+function docTotal(d) { return S.f.doctor.reduce((a, f) => a + num(d.c[f.k]), 0); }
+function roundDocs(r) { return S.day.doctors.filter(d => d.round === r); }
+function fv(form, k) { const x = S.day.forms[form]; return x ? x.v[k] : null; }
+function capacity() {
+  const pm = roundDocs('บ่าย');
+  const by = { Staff: 0, Fellow: 0, Resident: 0 };
+  pm.forEach(d => { if (by[d.level] != null) by[d.level]++; });
+  const q = S.cfg.quota;
+  const can = by.Staff * q.Staff + by.Fellow * q.Fellow + by.Resident * q.Resident;
+  const appt = num(fv('counter', 'apptPm'));
+  const half = Math.ceil(appt / (S.cfg.apptDiv || 2));
+  const pt = num(fv('cir', 'xferPt')), lab = num(fv('cir', 'xferLab'));
+  return { by, can, appt, half, pt, lab, left: can - (half + pt + lab), nDoc: pm.length,
+    missing: [blank(fv('counter', 'apptPm')) && 'นัดรอบบ่าย (เคาน์เตอร์ 1)', blank(fv('cir', 'xferPt')) && 'คนไข้โอนไปบ่าย (Cir กลาง)', blank(fv('cir', 'xferLab')) && 'Lab โอนไปบ่าย (Cir กลาง)'].filter(Boolean) };
+}
+
+// ---------- หน้าแรก ----------
+function dateBar(onchange) {
+  const inp = h('input', { type: 'date', value: S.date });
+  const go = async s => { S.date = s; loading(); try { await loadDay(); } catch (e) { toast(e.message, true); } onchange(); };
+  inp.addEventListener('change', () => inp.value && go(inp.value));
+  const shift = n => { const d = parseYmd(S.date); d.setDate(d.getDate() + n); go(ymd(d)); };
+  return h('div', { class: 'datebar noprint' }, h('button', { onclick: () => shift(-1) }, '‹'),
+    h('label', {}, '📅 ' + thDate(S.date), inp), h('button', { onclick: () => shift(1) }, '›'));
+}
+function srcCard(icon, bg, title, sub, done, fn) {
+  return h('button', { class: 'src', onclick: fn }, h('div', { class: 'ic', style: 'background:' + bg }, icon),
+    h('div', { style: 'min-width:0' }, h('b', {}, title), h('div', { class: 'st' }, sub)),
+    h('span', { class: 'pill ' + (done ? 'ok' : 'no') }, done ? '✓ ส่งแล้ว' : 'ยังไม่ส่ง'));
+}
+function by(x) { return x ? 'โดย ' + x.by + ' · ' + String(x.at).slice(11) : ''; }
+function showHome() {
+  const dd = S.day, am = roundDocs('เช้า'), pm = roundDocs('บ่าย');
+  const filled = am.concat(pm).filter(d => d.filled).length;
+  const c = capacity();
+  const capCard = c.nDoc ? h('div', { class: 'cap' + (c.left < 0 ? ' neg' : '') },
+    h('div', { class: 'sm', style: 'opacity:.95' }, '🎫 รอบบ่าย รับบัตรได้อีก'),
+    h('div', { class: 'big' }, c.left + ' ', h('span', { style: 'font-size:18px' }, 'ใบ')),
+    h('div', { class: 'eq' },
+      h('span', {}, 'แพทย์ตรวจได้ ' + c.can), ' − ( ', h('span', {}, 'นัดบ่าย ' + c.appt + '÷' + S.cfg.apptDiv + ' = ' + c.half), ' + ',
+      h('span', {}, 'โอนจากเช้า ' + c.pt), ' + ', h('span', {}, 'Lab ' + c.lab), ' )'),
+    h('div', { class: 'eq' }, 'Staff ' + c.by.Staff + ' · Fellow ' + c.by.Fellow + ' · Resident ' + c.by.Resident +
+      (num(fv('cir', 'reopen')) ? ' · เปิดรับเพิ่มแล้ว ' + num(fv('cir', 'reopen')) + ' ใบ' : '') + (fv('cir', 'closeAt') ? ' · ปิดบัตร ' + fv('cir', 'closeAt') : '')),
+    c.missing.length ? h('div', { class: 'eq' }, '⚠️ ยังไม่มี: ' + c.missing.join(', ')) : null)
+    : h('div', { class: 'card sm muted' }, '🎫 ใส่ชื่อแพทย์รอบบ่ายใน "ห้องตรวจแพทย์" แล้วระบบจะคำนวณบัตรที่รับได้อีกให้');
+  const ls = dd.lastSync;
+  render(
+    dateBar(showHome),
+    capCard,
+    srcCard('🩺', 'var(--blush)', 'ห้องตรวจแพทย์', 'แพทย์เช้า ' + am.length + ' · บ่าย ' + pm.length + ' คน · ลงยอดแล้ว ' + filled, filled > 0 && filled === am.length + pm.length, () => showDoctors()),
+    srcCard('💉', 'var(--sky)', 'ห้องหัตถการ', by(dd.forms.proc) || 'เจาะเลือด ฉีดยา พ่นยา Swab ฯลฯ', !!dd.forms.proc, () => showForm('proc')),
+    srcCard('🗓️', '#fff6df', 'เคาน์เตอร์ 1', by(dd.forms.counter) || 'ยอดนัด มาตามนัด รับปรึกษา', !!dd.forms.counter, () => showForm('counter')),
+    srcCard('🔄', '#efeaff', 'Cir กลาง', by(dd.forms.cir) || 'โอนเช้า→บ่าย DMS Admit ปิดบัตร', !!dd.forms.cir, () => showForm('cir')),
+    h('div', { class: 'stack' }, h('button', { class: 'btn btn-main', onclick: showReport }, '📄 ใบสรุปยอดประจำวัน')),
+    ls ? h('div', { class: 'sync' }, 'เติมชีทรายเดือนล่าสุด ' + String(ls[0]).slice(11), h('br'), '• ยอดผู้ป่วย: ' + ls[2], h('br'), '• หัตถการ: ' + ls[3]) : null);
+}
+
+// ---------- ห้องตรวจแพทย์ ----------
+function showDoctors(round) {
+  if (round) S.round = round;
+  const list = roundDocs(S.round);
+  const seg = h('div', { class: 'seg' }, ['เช้า', 'บ่าย'].map(r => h('button', { class: r === S.round ? 'on' : '', onclick: () => showDoctors(r) },
+    (r === 'เช้า' ? '☀️ รอบเช้า ' : '🌤️ รอบบ่าย ') + '(' + roundDocs(r).length + ')')));
+  const sum = list.reduce((a, d) => a + docTotal(d), 0);
+  render(back(), dateBar(() => showDoctors()), h('h2', {}, '🩺 ห้องตรวจแพทย์'),
+    h('p', { class: 'sm muted', style: 'margin-top:-4px' }, 'ใส่ชื่อแพทย์ที่ออกตรวจก่อนได้เลย แล้วค่อยลงยอดจากใบติ๊กเมื่อหมอตรวจเสร็จ'),
+    seg,
+    h('p', { class: 'sm', style: 'text-align:right;margin:-4px 0 8px' }, h('a', { href: '#', onclick: e => { e.preventDefault(); showSlip(); } }, '🖨️ พิมพ์ใบติ๊กยอดแบบใหม่')),
+    list.length ? list.map(d => h('button', { class: 'doc', onclick: () => editDoctor(d) },
+      h('div', { style: 'min-width:0' }, h('div', { class: 'nm' }, d.name),
+        h('div', { class: 'meta' }, h('span', { class: 'lv ' + d.level }, d.level), (d.tin || d.tout) ? (d.tin || '?') + ' – ' + (d.tout || '?') + ' น.' : d.sched)),
+      h('div', { class: 'tot' }, d.filled ? h('b', {}, docTotal(d)) : h('span', { class: 'pill no', style: 'font-size:12px;border-radius:999px;padding:3px 10px' }, 'รอยอด'),
+        d.filled ? h('span', { class: 'meta' }, 'ราย') : null)))
+      : h('p', { class: 'muted', style: 'text-align:center' }, 'ยังไม่มีแพทย์รอบนี้'),
+    list.length ? h('div', { class: 'total' }, h('span', {}, 'รวมรอบ' + S.round), h('b', {}, sum)) : null,
+    h('div', { class: 'savebar' }, h('button', { class: 'btn btn-main', onclick: () => editDoctor(null) }, '＋ เพิ่มแพทย์รอบ' + S.round)));
+}
+
+function numField(f, val, onchange, wide) {
+  const inp = h('input', { type: 'number', inputmode: 'numeric', min: '0', value: blank(val) ? '' : val, placeholder: '–' });
+  const box = h('label', { class: 'nf' + (blank(val) ? '' : ' has') + (wide ? ' wide' : '') }, h('span', {}, f.t, f.hint ? h('small', { class: 'hint' }, f.hint) : null), inp);
+  inp.addEventListener('focus', () => inp.select());
+  inp.addEventListener('input', () => { box.classList.toggle('has', inp.value !== ''); onchange && onchange(); });
+  return { el: box, inp, k: f.k };
+}
+
+function editDoctor(d) {
+  const isNew = !d;
+  d = d || { round: S.round, name: '', level: '', sched: S.round === 'เช้า' ? S.cfg.schedAm : S.cfg.schedPm, tin: '', tout: '', note: '', c: {} };
+  let level = d.level;
+  const name = h('input', { class: 'field', list: 'doclist', placeholder: 'พิมพ์ชื่อ เช่น พ.ประวิทย์', value: d.name });
+  const known = S.cfg.doctors;
+  const lvChips = h('div', { class: 'chips' });
+  const drawLv = () => lvChips.replaceChildren(...S.cfg.levels.map(l => h('button', { type: 'button', class: 'chip' + (l === level ? ' on' : ''), onclick: () => { level = l; drawLv(); } }, l)));
+  drawLv();
+  name.addEventListener('change', () => { const k = known.find(x => x.name === name.value.trim()); if (k && k.level) { level = k.level; drawLv(); } });
+  const sched = h('input', { class: 'field', value: d.sched || '' });
+  const tin = h('input', { class: 'field', inputmode: 'decimal', placeholder: 'เช่น 8.30', value: d.tin || '' });
+  const tout = h('input', { class: 'field', inputmode: 'decimal', placeholder: 'เช่น 12.02', value: d.tout || '' });
+  const note = h('input', { class: 'field', placeholder: 'เช่น สอน Extern, แทน พ.…', value: d.note || '' });
+  const totalB = h('b', {}, '0');
+  const upd = () => { totalB.textContent = mainF.reduce((a, x) => a + num(x.inp.value), 0); };
+  const mainF = S.f.doctor.map(f => numField(f, d.c[f.k], upd));
+  const extra = S.f.doctorExtra.map(f => numField(f, d.c[f.k]));
+  upd();
+  const collect = () => {
+    const c = {};
+    mainF.concat(extra).forEach(x => { c[x.k] = x.inp.value === '' ? '' : Number(x.inp.value); });
+    return { id: d.id, round: d.round, name: name.value.trim(), level, sched: sched.value.trim(), tin: tin.value.trim(), tout: tout.value.trim(), note: note.value.trim(), c };
+  };
+  render(back(() => showDoctors()), h('h2', {}, (isNew ? '＋ เพิ่มแพทย์' : '✏️ แก้ไขยอด') + ' · รอบ' + d.round),
+    h('div', { class: 'card' },
+      h('label', { class: 'lb' }, 'ชื่อแพทย์'), name, h('datalist', { id: 'doclist' }, known.map(x => h('option', { value: x.name }, x.level))),
+      h('label', { class: 'lb' }, 'ระดับ'), lvChips,
+      h('label', { class: 'lb' }, 'กำหนดออกตรวจ'), sched,
+      h('div', { class: 'row2' }, h('div', {}, h('label', { class: 'lb' }, 'เวลามา'), tin), h('div', {}, h('label', { class: 'lb' }, 'เวลากลับ'), tout))),
+    h('div', { class: 'grp' }, 'ยอดตรวจ (จากใบติ๊กยอด)'),
+    h('div', { class: 'ngrid' }, mainF.map(x => x.el)),
+    h('div', { class: 'total' }, h('span', {}, 'ตรวจได้รวม'), totalB),
+    h('div', { class: 'grp' }, 'ส่งตรวจ / อื่นๆ'),
+    h('div', { class: 'ngrid' }, extra.map(x => x.el)),
+    h('label', { class: 'lb' }, 'หมายเหตุ'), note,
+    !isNew ? h('div', { class: 'stack' }, act('ลบแพทย์คนนี้ออกจากวันนี้', 'btn-line', async () => {
+      if (!confirm('ลบ ' + d.name + ' (รอบ' + d.round + ') ออกจากวันนี้?')) return;
+      applyDay(await api('deleteDoctor', { id: d.id })); showDoctors();
+    })) : null,
+    h('div', { style: 'height:20px' }),
+    h('div', { class: 'savebar' }, act('บันทึก', 'btn-main', async () => {
+      const x = collect();
+      if (!x.name) throw new Error('กรุณาใส่ชื่อแพทย์');
+      if (!x.level) throw new Error('กรุณาเลือกระดับ Staff / Fellow / Resident');
+      applyDay(await api('saveDoctor', { date: S.date, doctor: x }));
+      if (!known.some(k => k.name === x.name)) known.push({ name: x.name, level: x.level });
+      showDoctors();
+    })));
+}
+
+// ---------- ฟอร์มหัตถการ / เคาน์เตอร์ / Cir ----------
+const FORM_INFO = {
+  proc: { t: '💉 ห้องหัตถการ', sub: 'พยาบาลห้องเจาะเลือดตาม assignment ลงยอดวันละครั้ง ช่องที่ไม่มีให้เว้นว่าง' },
+  counter: { t: '🗓️ เคาน์เตอร์ 1', sub: 'ยอดนัดและรับปรึกษา · ใส่ "นัดรอบบ่าย" ก่อนเที่ยง เพื่อคำนวณบัตรบ่าย' },
+  cir: { t: '🔄 Cir กลาง', sub: 'ใส่ยอดโอนไปบ่ายตอนเที่ยง แล้วกลับมาเติมที่เหลือตอนเย็นได้' }
+};
+function showForm(form) {
+  const cur = S.day.forms[form], fields = S.f[form];
+  const items = [];
+  const body = [];
+  let grid = null;
+  const flush = () => { if (grid) { body.push(grid); grid = null; } };
+  fields.forEach(f => {
+    if (f.g) { flush(); body.push(h('div', { class: 'grp' }, f.g)); return; }
+    const val = cur ? cur.v[f.k] : null;
+    if (f.type) {
+      flush();
+      const inp = h('input', { class: 'field', type: 'text', value: val || '', placeholder: f.type === 'time' ? 'เช่น 10.30' : '', inputmode: f.type === 'time' ? 'decimal' : 'text' });
+      items.push({ k: f.k, inp, text: true });
+      body.push(h('label', { class: 'lb' }, f.t), inp);
+      return;
+    }
+    grid = grid || h('div', { class: 'ngrid' });
+    const x = numField(f, val, null, !!f.hint);
+    items.push(x); grid.append(x.el);
+  });
+  flush();
+  render(back(), dateBar(() => showForm(form)), h('h2', {}, FORM_INFO[form].t),
+    h('p', { class: 'sm muted', style: 'margin-top:-4px' }, FORM_INFO[form].sub),
+    cur ? h('p', { class: 'sm', style: 'color:var(--ok)' }, '✓ ส่งแล้ว ' + by(cur) + ' · แก้แล้วกดบันทึกซ้ำได้') : null,
+    body, h('div', { style: 'height:20px' }),
+    h('div', { class: 'savebar' }, act('บันทึกยอด' + FORM_INFO[form].t.replace(/^\S+\s/, ''), 'btn-main', async () => {
+      const v = {};
+      items.forEach(x => { v[x.k] = x.text ? x.inp.value.trim() : (x.inp.value === '' ? '' : Number(x.inp.value)); });
+      applyDay(await api('saveForm', { form, date: S.date, values: v }));
+      showHome();
+    })));
+}
+
+// ---------- ใบสรุปยอดประจำวัน (หน้าตาแบบเดิม) ----------
+function showReport() {
+  const d = parseYmd(S.date);
+  const cn = S.day.forms.counter ? S.day.forms.counter.v : {};
+  const cr = S.day.forms.cir ? S.day.forms.cir.v : {};
+  const pr = S.day.forms.proc ? S.day.forms.proc.v : {};
+  const cols = S.f.doctor;
+  const nullDash = v => blank(v) ? '' : v;
+  const head = h('tr', {}, ['ลำดับ', 'ระดับแพทย์', 'รายชื่อแพทย์', 'กำหนดออกตรวจ', 'เวลามา', 'เวลากลับ'].concat(cols.map(f => f.t), ['ตรวจได้', 'หมายเหตุ']).map(t => h('th', {}, t)));
+  const block = r => {
+    const list = roundDocs(r);
+    const rows = [];
+    const n = Math.max(list.length, 6);
+    for (let i = 0; i < n; i++) {
+      const x = list[i];
+      rows.push(h('tr', {}, h('td', {}, i + 1), h('td', {}, x ? x.level : ''), h('td', { class: 'l' }, x ? x.name : ''), h('td', {}, x ? x.sched : ''),
+        h('td', {}, x ? x.tin : ''), h('td', {}, x ? x.tout : ''), cols.map(f => h('td', {}, x ? nullDash(x.c[f.k]) : '')),
+        h('td', { class: 'tot' }, x && x.filled ? docTotal(x) : ''), h('td', { class: 'l' }, x ? x.note : '')));
+    }
+    rows.push(h('tr', { class: 'sum' }, h('td', { colspan: 6, style: 'text-align:right' }, 'รวมรอบ' + r),
+      cols.map(f => h('td', {}, list.reduce((a, x) => a + num(x.c[f.k]), 0))), h('td', {}, list.reduce((a, x) => a + docTotal(x), 0)), h('td', {}, '')));
+    return rows;
+  };
+  const all = S.day.doctors;
+  const tot = all.reduce((a, x) => a + docTotal(x), 0);
+  const rsv = all.reduce((a, x) => a + num(x.c.rsv), 0), cov = all.reduce((a, x) => a + num(x.c.covid), 0);
+  const adm = ['admGen', 'admAri', 'admCovid', 'admFlu', 'admRsv'].reduce((a, k) => a + num(cr[k]), 0);
+  const W = 6 + cols.length + 2;
+  const procRows = S.f.proc.filter(f => f.k && num(pr[f.k]) > 0);
+  const rep = h('div', { class: 'rep' },
+    h('h1', {}, 'ยอดผู้ป่วยกุมารเวชกรรมทั่วไปและโรคติดเชื้อ'),
+    h('table', {},
+      h('tr', { class: 'info' }, h('td', { colspan: W, style: 'text-align:center' },
+        'วัน' + d.toLocaleDateString('th-TH', { weekday: 'long' }).replace('วัน', '') + '   ที่ ' + d.getDate() + '   ' + d.toLocaleDateString('th-TH', { month: 'long' }) + '   ' + (d.getFullYear() + 543))),
+      h('tr', { class: 'info' }, h('td', { colspan: W, style: 'text-align:center' },
+        'ระบบนัดหมาย ' + nullDash(cn.apptAll) + ' ราย     มาตามนัด ' + nullDash(cn.came) + ' ราย     ไม่มาตามนัด ' + nullDash(cn.noShow) + ' ราย     รับปรึกษา ' + nullDash(cn.consult) + ' ราย')),
+      head, block('เช้า'),
+      h('tr', { class: 'bar' }, h('td', { colspan: W }, 'ไม่รอตรวจรอบเช้า ' + num(cr.leftAm) + ' ราย     รอตรวจบ่าย ' + num(cr.xferPt) + ' ราย     รอ Lab ' + num(cr.xferLab) + ' ราย')),
+      head.cloneNode(true), block('บ่าย'),
+      h('tr', { class: 'bar' }, h('td', { colspan: W }, 'ไม่รอตรวจรอบบ่าย ' + num(cr.leftPm) + ' ราย     โอนตรวจนอกเวลา ' + num(cr.toAfter) + ' ราย     ส่ง ER ' + num(cr.sendEr) + ' ราย     โอน ER ' + num(cr.xferEr) + ' ราย')),
+      h('tr', { class: 'info' }, h('td', { colspan: W, class: 'l' }, 'ปิดบัตร ' + (cr.closeAt || '–') + ' น.   เปิดรับเพิ่ม ' + num(cr.reopen) + ' ใบ   ·   คัดกรองส่งแผนกอื่น / หมายเหตุ: ' + (cr.note || '–')))),
+    h('div', { class: 'gap' }),
+    h('table', { style: 'width:auto;margin:10px auto 0' },
+      h('tr', {}, h('th', { colspan: 9 }, 'สำหรับส่งยอดรายงานผู้ตรวจการพยาบาลประจำวัน')),
+      h('tr', {}, h('th', { rowspan: 2 }, 'เวลา'), h('th', { rowspan: 2 }, 'ยอดรวม'), h('th', { colspan: 3 }, 'จำนวน (ราย)'), h('th', { colspan: 3 }, 'Admitted (ราย)'), h('th', {}, 'Swab')),
+      h('tr', {}, ['ทั่วไป', 'RSV', 'Covid', 'ทั่วไป', 'RSV', 'Covid'].map(t => h('th', {}, t)), h('th', {}, 'PCR / Combo')),
+      h('tr', {}, h('td', { class: 'l' }, 'อายุรกรรมทั่วไป (จ-ศ) 8.00 - 16.00'), h('td', {}, tot), h('td', {}, tot - rsv - cov), h('td', {}, rsv), h('td', {}, cov),
+        h('td', {}, adm - num(cr.admRsv) - num(cr.admCovid)), h('td', {}, num(cr.admRsv)), h('td', {}, num(cr.admCovid)), h('td', {}, num(pr.pcr) + ' / ' + num(pr.combo)))),
+    procRows.length ? h('table', { style: 'margin-top:10px' },
+      h('tr', {}, h('th', { colspan: 8 }, 'ยอดหัตถการ')),
+      ...chunk(procRows, 4).map(r => h('tr', {}, r.map(f => [h('td', { class: 'l' }, f.t), h('td', {}, pr[f.k])])))) : null,
+    h('div', { class: 'sig' }, 'ผู้สรุปข้อมูล ......................................................  (' + (S.me.nick || S.me.name) + ' พิมพ์เมื่อ ' + new Date().toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) + ')'));
+  const inLine = window.liff && liff.isInClient && liff.isInClient();
+  render(h('div', { class: 'noprint' }, back(), dateBar(showReport)),
+    h('div', { class: 'rep-wrap' }, rep),
+    h('div', { class: 'stack noprint' },
+      inLine ? h('button', { class: 'btn btn-main', onclick: () => {
+        const u = location.origin + location.pathname + '?view=print&date=' + S.date;
+        try { liff.openWindow({ url: u, external: true }); } catch (_) { window.open(u, '_blank'); }
+      } }, '🖨️ เปิดในเบราว์เซอร์เพื่อพิมพ์ / PDF')
+        : h('button', { class: 'btn btn-main', onclick: () => window.print() }, '🖨️ พิมพ์ / บันทึกเป็น PDF'),
+      h('p', { class: 'sm muted', style: 'text-align:center;margin:0' }, 'ตอนพิมพ์เลือกขนาดกระดาษ A4 แนวตั้ง')));
+}
+// ---------- ใบติ๊กยอดแพทย์แบบใหม่ (ช่องตรงกับที่ลงในระบบ) · A4 ได้ 2 ใบ ----------
+function showSlip() {
+  const one = () => h('div', { class: 'slip' },
+    h('div', { style: 'text-align:center;font-weight:600;font-size:15px' }, 'ใบลงยอดตรวจแพทย์ · คลินิกอายุรกรรมทั่วไป'),
+    h('div', { class: 'ln' }, 'แพทย์', h('span'), h('b', { class: 'lv3' }, '☐ Staff  ☐ Fellow  ☐ Resident')),
+    h('div', { class: 'ln' }, 'วันที่', h('span'), 'รอบ ☐ เช้า ☐ บ่าย', ' เวลามา', h('span', { style: 'flex:.5' }), 'เวลากลับ', h('span', { style: 'flex:.5' })),
+    h('table', {}, chunk(S.f.doctor, 2).map(p => h('tr', {}, p.map(f => [h('td', { class: 'k' }, f.t), h('td', { class: 't' })])))),
+    h('table', {}, chunk(S.f.doctorExtra, 3).map(p => h('tr', {}, p.map(f => [h('td', { class: 'k', style: 'width:18%' }, f.t), h('td', {})])))),
+    h('div', { class: 'ln', style: 'margin-top:8px' }, 'หมายเหตุ (Admit / ส่ง ER ฯลฯ)', h('span')),
+    h('div', { class: 'ln' }, 'ลงชื่อผู้บันทึก', h('span', { style: 'flex:.6' }), 'รวมตรวจได้', h('span', { style: 'flex:.3' }), 'ราย'));
+  const inLine = window.liff && liff.isInClient && liff.isInClient();
+  render(h('div', { class: 'noprint' }, back(() => showDoctors(), 'กลับ'),
+    h('p', { class: 'sm muted' }, 'ช่องเรียงเหมือนหน้าลงยอดในแอป Incharge กรอกตามได้ทีละช่อง พิมพ์ A4 ได้ 2 ใบต่อแผ่น')),
+    h('div', { class: 'slips' }, one(), one()),
+    h('div', { class: 'stack noprint' }, inLine
+      ? h('button', { class: 'btn btn-main', onclick: () => { const u = location.origin + location.pathname + '?view=slip'; try { liff.openWindow({ url: u, external: true }); } catch (_) { window.open(u, '_blank'); } } }, '🖨️ เปิดในเบราว์เซอร์เพื่อพิมพ์')
+      : h('button', { class: 'btn btn-main', onclick: () => window.print() }, '🖨️ พิมพ์')));
+}
+function chunk(a, n) { const out = []; for (let i = 0; i < a.length; i += n) out.push(a.slice(i, i + n)); return out; }
+
+main();
+</script>
+</body>
+</html>
